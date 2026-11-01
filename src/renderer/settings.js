@@ -11,7 +11,7 @@
     penName: '', theme: 'dark', accent: '#e8caa4', uiScale: 100, reduceMotion: null,
     // Writing and bottom bar (part 5d)
     pageWidth: 'medium', writingFont: '', writingSize: 18, writingSpacing: 1.75,
-    smartQuotes: true, quoteStyle: 'en', autoEllipsis: true, autoHighlight: false,
+    smartQuotes: true, quoteStyle: 'en', autoEllipsis: true, smartBrackets: true, autoHighlight: false,
     typewriter: false, autosaveDelay: 600,
     tabs: { order: ['home', 'places', 'characters', 'timeline', 'manuscript', 'darlings', 'notes', 'tags'], hidden: [] },
     statsSide: 'right',

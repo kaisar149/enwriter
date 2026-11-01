@@ -1,7 +1,7 @@
 {
   "name": "enWriter",
   "productName": "enWriter",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "enWriter",
   "main": "src/main.js",
   "author": "Stixhi Stishi <kineticstishi19@gmail.com>",
@@ -23,6 +23,12 @@
     "compression": "normal",
     "win": {
       "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
     },
     "mac": {
       "target": "dmg",

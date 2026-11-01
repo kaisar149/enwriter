@@ -22,6 +22,7 @@
     if (!s) return;
     s.quotes = !!st.get('smartQuotes');
     s.ellipsis = !!st.get('autoEllipsis');
+    s.brackets = !!st.get('smartBrackets');
     s.style = emw.smartText.styles[st.get('quoteStyle')] ? st.get('quoteStyle') : 'en';
   }
 
@@ -33,7 +34,7 @@
 
   st.onChange((key) => {
     if (key === 'pageWidth') applyPageWidth();
-    else if (key === 'smartQuotes' || key === 'autoEllipsis' || key === 'quoteStyle') applySmartText();
+    else if (key === 'smartQuotes' || key === 'autoEllipsis' || key === 'smartBrackets' || key === 'quoteStyle') applySmartText();
     else if (key === 'tabs' || key === 'statsSide') applyBar();
     // typewriter and autoHighlight are followed by editor.js and auto-highlight.js themselves;
     // the default font and size are followed by typography.js (the book's own choice wins); spacing is read
@@ -103,6 +104,8 @@
       pane.append(row('Quote style', quoteStyle));
       syncStyle(!!st.get('smartQuotes'));
       pane.append(row('Ellipsis', checkbox('Turn three dots into …', 'autoEllipsis')));
+      pane.append(row('Smart brackets', checkbox('Turn [[ into 【 and [[[ into 〖', 'smartBrackets'),
+        'The same for ]] and ]]]. Press Backspace right after a conversion to get the plain brackets back.'));
       pane.append(row('Highlighting', checkbox('Highlight text as soon as it is selected', 'autoHighlight'),
         'The same switch as the button on the ribbon.'));
       pane.append(row('Typewriter mode', checkbox('Keep the line you are writing near the middle', 'typewriter'),
@@ -123,7 +126,7 @@
       pane.append(row('Autosave delay', box, 'How long to wait after you stop typing before saving. Shorter saves sooner; longer does less disk work.'));
 
       pane.append(resetLink(['pageWidth', 'writingFont', 'writingSize', 'writingSpacing', 'smartQuotes', 'quoteStyle',
-        'autoEllipsis', 'autoHighlight', 'typewriter', 'autosaveDelay'], redo));
+        'autoEllipsis', 'smartBrackets', 'autoHighlight', 'typewriter', 'autosaveDelay'], redo));
     }
   });
 

@@ -14,12 +14,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, macos-latest, ubuntu-latest]
+        include:
+          # `test_args` is what pull requests build: a single file you can run without installing.
+          # Windows: portable .exe. macOS: the .app in a zip. Linux: an AppImage.
+          - os: windows-latest
+            test_args: --win portable
+          - os: macos-latest
+            test_args: --mac zip
+          - os: ubuntu-latest
+            test_args: --linux AppImage
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v4
+      # This is the Node version your app is built with, not the one the actions run on.
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: npm
@@ -27,19 +36,28 @@ jobs:
       - run: npm ci
 
       # --publish never: electron-builder only builds; the release job below does the uploading.
+      # Pull requests: portable test builds. Pushes, tags and manual runs: the real installers.
+      - name: Build test apps (pull requests)
+        if: github.event_name == 'pull_request'
+        run: npx electron-builder ${{ matrix.test_args }} --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
       - name: Build installers
+        if: github.event_name != 'pull_request'
         run: npx electron-builder --publish never
         env:
           # No signing certificates are configured, so skip the macOS identity lookup.
           CSC_IDENTITY_AUTO_DISCOVERY: false
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
-          name: enwriter-${{ matrix.os }}
+          name: enwriter-${{ github.event_name == 'pull_request' && 'test-' || '' }}${{ matrix.os }}
           if-no-files-found: error
           path: |
             dist/*.exe
             dist/*.dmg
+            dist/*.zip
             dist/*.AppImage
             dist/*.deb
 
@@ -51,12 +69,12 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: release
           merge-multiple: true
 
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           files: release/*
           generate_release_notes: true

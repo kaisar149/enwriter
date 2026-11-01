@@ -75,6 +75,7 @@ function create({ app, dialog, shell, writeAtomic }) {
     smartQuotes: true,
     quoteStyle: 'en',     // 'en' | 'fr' | 'de'
     autoEllipsis: true,
+    smartBrackets: true,
     autoHighlight: false,
     typewriter: false,
     autosaveDelay: 600,   // ms
@@ -120,6 +121,7 @@ function create({ app, dialog, shell, writeAtomic }) {
     smartQuotes: (v) => typeof v === 'boolean',
     quoteStyle: (v) => ['en', 'fr', 'de'].includes(v),
     autoEllipsis: (v) => typeof v === 'boolean',
+    smartBrackets: (v) => typeof v === 'boolean',
     autoHighlight: (v) => typeof v === 'boolean',
     typewriter: (v) => typeof v === 'boolean',
     autosaveDelay: (v) => Number.isInteger(v) && v >= 200 && v <= 2000,

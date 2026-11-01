@@ -1,4 +1,4 @@
-// Smart quotes and automatic ellipsis, applied as the writer types.
+// Smart quotes, automatic ellipsis and smart brackets ([[ → 【, [[[ → 〖), applied as the writer types.
 // Usage: emw.smartText.apply(inputEvent, rootEl) from an `input` handler on a
 // contenteditable root (the manuscript editor, the notes mini editor).
 (() => {
@@ -12,9 +12,14 @@
     de: { label: 'German „ “ ‚ ‘', dq: ['„', '“'], sq: ['‚', '‘'] }
   };
   const APOSTROPHE = '’';
+  // Square brackets grow into lenticular brackets: two make the black pair, three the white pair.
+  const BRACKETS = {
+    '[': { black: '【', white: '〖' },
+    ']': { black: '】', white: '〗' }
+  };
 
   // Feature 5 (Settings) will persist and edit this object; until then it stays at defaults.
-  const settings = { quotes: true, ellipsis: true, style: 'en' };
+  const settings = { quotes: true, ellipsis: true, brackets: true, style: 'en' };
 
   const OPENERS = new Set(['(', '[', '{', '—', '–', '“', '‘', '«', '„', '‚', '‹']);
   const SINGLE_OPEN = '‘‚‹';
@@ -90,6 +95,7 @@
 
   function apply(e, root) {
     if (busy) return;       // re-entrancy guard: the replacement below fires `input` again
+    const prev = last;      // kept for one step: the third bracket may only upgrade OUR 【 / 】
     last = null;            // any other input ends the "Backspace reverts" window
     if (!e || e.inputType !== 'insertText' || e.isComposing || typeof e.data !== 'string' || e.data.length !== 1) return;
     if (!root || !root.isContentEditable) return;
@@ -106,6 +112,19 @@
       const before = charBefore(node, at - 1, root);
       const q = quoteFor(ch, before);
       if (q !== ch) convert(root, node, at - 1, at, q, ch);
+      return;
+    }
+
+    if ((ch === '[' || ch === ']') && settings.brackets) {
+      const set = BRACKETS[ch];
+      // Third bracket: upgrade the black bracket we just made. A 【 that was pasted or typed
+      // earlier is not ours (prev doesn't point at it), so it never merges with a new bracket.
+      if (prev && prev.converted === set.black && prev.node === node && prev.end === at - 1 &&
+          node.data[at - 2] === set.black) {
+        convert(root, node, at - 2, at, set.white, ch + ch + ch);
+      } else if (at >= 2 && node.data[at - 2] === ch) {
+        convert(root, node, at - 2, at, set.black, ch + ch);
+      }
       return;
     }
 
