@@ -15,6 +15,7 @@
     typewriter: false, autosaveDelay: 600,
     tabs: { order: ['home', 'places', 'characters', 'timeline', 'manuscript', 'darlings', 'notes', 'tags'], hidden: [] },
     statsSide: 'right',
+    goalWeekStart: 'mon',   // v0.8.2
     spellcheck: false,
     spellLanguage: 'en-US',   // part 7c: the default; a book may override it
     customWords: [],          // part 7c: the shared custom dictionary

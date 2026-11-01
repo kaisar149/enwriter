@@ -1135,3 +1135,39 @@ dialog.ftc-picker[open] { display: flex; flex-direction: column; }
 .chip-sub { margin: 0 6px 0 2px; color: var(--muted); font-size: 12px; }
 .ev-family-open { padding: 0; text-align: left; color: var(--accent-text); }
 .ev-family-open:hover { text-decoration: underline; }
+
+/* ======================= v0.8.2: goals ======================= */
+/* The word counters are buttons now; they must look exactly as the spans did. */
+.stats .st-count { font: inherit; text-align: left; justify-self: start; cursor: pointer; border-radius: 3px; position: relative; }
+.stats .st-count:hover { text-decoration: underline; text-underline-offset: 3px; }
+.stats .st-count:focus-visible { outline: 2px solid var(--accent-edge); outline-offset: 2px; }
+/* Daily goal: a 2px line under the manuscript total, filled to the day's progress. */
+.stats .st-count[data-goal]::before, .stats .st-count[data-goal]::after { content: ''; position: absolute; left: 0; bottom: -3px; height: 2px; border-radius: 1px; }
+.stats .st-count[data-goal]::before { right: 0; background: var(--line); }
+.stats .st-count[data-goal]::after { width: var(--goal-pct, 0%); background: var(--accent-edge); }
+
+.goals-pop { position: fixed; z-index: 80; width: 320px; max-width: calc(100vw - 24px); overflow-y: auto; padding: 14px 16px 12px; background: var(--surface-raised); color: var(--ink); border: 1px solid var(--border-menu); border-radius: 8px; box-shadow: 0 8px 24px var(--shadow-menu); font-family: var(--sans); font-size: 13px; }
+.goals-title { margin: 0 0 8px; font-family: var(--serif); font-size: 16px; font-weight: 600; }
+.goal-row { padding: 8px 0; border-top: 1px solid var(--line); }
+.goal-row:first-of-type { border-top: 0; }
+.goal-add { display: block; width: 100%; padding: 8px 10px; text-align: left; color: var(--muted); border: 2px dotted var(--border-strong); border-radius: 4px; }
+.goal-add:hover, .goal-add:focus-visible { border-color: var(--accent-edge); color: var(--accent-text); }
+.goal-add:focus-visible { outline: none; }
+.goal-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 4px; }
+.goal-name { font-weight: 600; }
+.goal-field { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+.goals-pop .goal-input { width: 92px; margin: 0; padding: 4px 8px; text-align: right; font: inherit; font-variant-numeric: tabular-nums; color: var(--ink); background: var(--field); border: 1px solid var(--line); border-radius: 4px; }
+.goal-line { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 6px; font-variant-numeric: tabular-nums; color: var(--muted); }
+.goal-row.is-done .goal-pct { color: var(--accent-text); font-weight: 600; }
+.goal-bar { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.goal-fill { height: 100%; width: 0; border-radius: 3px; background: var(--accent-edge); transition: width .25s ease; }
+.goals-help { margin: 6px 0 10px; color: var(--muted); font-size: 12px; }
+.goals-week { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+.goals-week-label { color: var(--muted); }
+.goals-seg { display: inline-flex; border: 1px solid var(--border-strong); border-radius: 4px; overflow: hidden; }
+.goals-seg-btn { padding: 4px 10px; color: var(--muted); }
+.goals-seg-btn + .goals-seg-btn { border-left: 1px solid var(--border-strong); }
+.goals-seg-btn:hover { color: var(--ink); }
+.goals-seg-btn[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.goals-seg-btn:focus-visible { outline-offset: -2px; }
+@media (prefers-reduced-motion: reduce) { .goal-fill { transition: none; } }

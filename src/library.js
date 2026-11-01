@@ -83,6 +83,7 @@ function create({ app, dialog, shell, writeAtomic }) {
     // added in a later version show up on their own.
     tabs: { order: ['home', 'places', 'characters', 'timeline', 'manuscript', 'darlings', 'notes', 'tags'], hidden: [] },
     statsSide: 'right',   // 'left' | 'right'
+    goalWeekStart: 'mon', // v0.8.2: 'mon' | 'sun'; which day the weekly writing goal starts on
     // Part 7a: only the writer's keyboard changes, { actionId: [bindings] }. An empty list means unbound.
     shortcuts: {},
     // Part 7b: off until the writer turns it on (ribbon button, F7). Applied to the whole session by main.js.
@@ -133,6 +134,7 @@ function create({ app, dialog, shell, writeAtomic }) {
       return ids(v.order) && ids(v.hidden);
     },
     statsSide: (v) => v === 'left' || v === 'right',
+    goalWeekStart: (v) => v === 'mon' || v === 'sun',
     spellcheck: (v) => typeof v === 'boolean',
     spellLanguage: (v) => SPELL_IDS.includes(v),
     // Checked after SANITISERS has cleaned the list, so this only fails for something that is not a list.

@@ -193,6 +193,7 @@
       ['Notes', '', 'goNotes'],
       ['Tags', '', 'goTags'],
       ['Customise bottom bar…', '', 'customiseBottomBar'],
+      ['Goals…', 'Ctrl+Alt+G', 'goals'],
       null,
       ['Pin chapters panel', 'Alt+1', 'toggleHierarchy'],
       ['Show ribbon', 'Alt+2', 'toggleRibbon'],

@@ -32,6 +32,7 @@
   <script src="family-tree.js" defer></script>
   <script src="family-canvas.js" defer></script>
   <script src="app.js" defer></script>
+  <script src="goals.js" defer></script>
   <script src="chapter-view.js" defer></script>
   <script src="darlings.js" defer></script>
   <script src="snapshots.js" defer></script>
@@ -282,9 +283,9 @@
     <div class="tabbar-left" hidden></div>
     <nav class="tabs" aria-label="Sections"></nav>
     <div id="stats" class="stats">
-      <span id="st-words">0 words</span>
+      <button id="st-words" class="st-count" type="button" aria-haspopup="dialog" aria-expanded="false" title="Writing goals">0 words</button>
       <span id="st-save" class="save">Saved</span>
-      <span id="st-total" class="total">0 words in manuscript</span>
+      <button id="st-total" class="total st-count" type="button" aria-haspopup="dialog" aria-expanded="false" title="Writing goals">0 words in manuscript</button>
       <button id="st-darlings" class="st-darlings" type="button" hidden title="Show these in Darlings"></button>
     </div>
   </footer>

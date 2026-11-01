@@ -158,6 +158,35 @@
       });
     }
     normalizeFamilies();
+    normalizeGoals();
+  }
+
+  // v0.8.2: goals. Additive: a book that never had goals is left alone (nothing is added just by
+  // opening it); anything present is clamped so the views never meet NaN or a hand-edited oddity.
+  const GOAL_KINDS = ['daily', 'weekly', 'monthly', 'book'];
+  const GOAL_MAX = 10000000;
+  const DAY_KEY = /^\d{4}-\d{2}-\d{2}$/;
+  const cleanTarget = (v) => { const n = Math.floor(Number(v)); return Number.isFinite(n) && n > 0 ? Math.min(n, GOAL_MAX) : 0; };
+  const cleanCount = (v) => { const n = Math.floor(Number(v)); return Number.isFinite(n) && n > 0 ? Math.min(n, 1e9) : 0; };
+  function normalizeGoals() {
+    if (data.goals !== undefined) {
+      const g = data.goals && typeof data.goals === 'object' ? data.goals : {};
+      data.goals = {};
+      for (const k of GOAL_KINDS) data.goals[k] = cleanTarget(g[k]);
+    }
+    if (data.goalLog !== undefined) {
+      const l = data.goalLog && typeof data.goalLog === 'object' ? data.goalLog : {};
+      const days = {};
+      const src = l.days && typeof l.days === 'object' && !Array.isArray(l.days) ? l.days : {};
+      for (const key of Object.keys(src)) {
+        if (!DAY_KEY.test(key) || !src[key] || typeof src[key] !== 'object') continue;
+        days[key] = { start: cleanCount(src[key].start), words: cleanCount(src[key].words) };
+      }
+      const f = l.fired && typeof l.fired === 'object' ? l.fired : {};
+      const fired = {};
+      for (const k of GOAL_KINDS) fired[k] = typeof f[k] === 'string' ? f[k].slice(0, 12) : '';
+      data.goalLog = { days, fired };
+    }
   }
 
   // Part 7i. Additive: a book saved before families gains empty arrays and the built-in types.
@@ -213,7 +242,9 @@
     migration = (Number(data.schema) || 1) < 2
       ? (Array.isArray(data.chapters) ? data.chapters : []).map((c) => ({ id: c.id, words: Number(c.words) || 0 }))
       : null;
+    const real = Array.isArray(data.chapters);   // load({}) is the empty placeholder when no book is open
     normalize();
+    if (real) recordGoalProgress();
     undoStack = []; redoStack = []; lastKey = null;
     return data;
   }
@@ -286,7 +317,9 @@
     // Text darlings are cut from the editor, whose own undo the store knows nothing about. Rolling
     // them back here could leave text that is in neither the scene nor Darlings, so they are kept.
     const textDarlings = (data.darlings || []).filter((d) => d.kind === 'text');
+    const liveLog = data.goalLog;   // v0.8.2: the writing log is measured, not chosen, so undo never rolls it back
     data = JSON.parse(json);
+    if (liveLog) data.goalLog = liveLog; else delete data.goalLog;
     data.darlings = (data.darlings || []).filter((d) => d.kind !== 'text').concat(textDarlings)
       .sort((a, b) => b.createdAt - a.createdAt);
     for (const c of data.chapters) for (const s of c.scenes) if (words.has(s.id)) s.words = words.get(s.id);
@@ -659,7 +692,87 @@
     const d = doc(id);
     if (!d || d.kind !== 'scene' || d.item.words === n) return false;
     d.item.words = n;
+    goalListeners.forEach((cb) => { try { cb(); } catch { /* one listener must not break the others */ } });
     return true;
+  }
+
+  // ---- goals (v0.8.2) ----------------------------------------------------------------
+  // Targets (data.goals) are chosen, so they are undo steps. The log (data.goalLog) is measured, so it
+  // is written without one. Daily progress is the net new words since this book was first seen today
+  // (never below 0); weekly and monthly progress add the days up. The book goal is the total itself.
+  const goalListeners = [];
+  const pad2 = (n) => String(n).padStart(2, '0');
+  const dayKey = (d = new Date()) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;   // local time, not UTC
+  const weekStartKey = (d, weekStart) => {
+    const first = weekStart === 'sun' ? 0 : 1;
+    const back = (d.getDay() - first + 7) % 7;
+    return dayKey(new Date(d.getFullYear(), d.getMonth(), d.getDate() - back));
+  };
+  const periodKeys = (weekStart, now = new Date()) => ({
+    daily: dayKey(now), weekly: weekStartKey(now, weekStart), monthly: dayKey(now).slice(0, 7), book: 'book'
+  });
+
+  // Rolls the day over and updates today's figure. Silent: the caller decides whether to announce it.
+  // Returns true when the log changed.
+  function recordGoalProgress({ notify = false } = {}) {
+    if (!data || !Array.isArray(data.chapters)) return false;
+    try {
+      const total = totalWords();
+      const day = dayKey();
+      if (!data.goalLog || typeof data.goalLog !== 'object') data.goalLog = { days: {}, fired: {} };
+      const log = data.goalLog;
+      if (!log.days || typeof log.days !== 'object') log.days = {};
+      if (!log.fired || typeof log.fired !== 'object') log.fired = {};
+      let changed = false;
+      let e = log.days[day];
+      if (!e) {
+        e = log.days[day] = { start: total, words: 0 };
+        changed = true;
+        const cutoff = dayKey(new Date(Date.now() - 400 * 86400000));   // 400 days covers any week or month
+        for (const k of Object.keys(log.days)) if (k < cutoff) delete log.days[k];
+      }
+      const w = Math.max(0, total - e.start);
+      if (e.words !== w) { e.words = w; changed = true; }
+      if (changed && notify) emit({ label: 'goals', quiet: true });
+      return changed;
+    } catch { return false; /* the log is a convenience; it must never break editing */ }
+  }
+
+  // Plain figures for the views: { daily, weekly, monthly, book } of { target, written, done, pct }.
+  function goalProgress(weekStart = 'mon') {
+    const g = (data && data.goals) || {};
+    const total = data && Array.isArray(data.chapters) ? totalWords() : 0;
+    const log = (data && data.goalLog && data.goalLog.days) || {};
+    const now = new Date();
+    const keys = periodKeys(weekStart === 'sun' ? 'sun' : 'mon', now);
+    const live = {};   // today comes from the live total, earlier days from the log
+    for (const k of Object.keys(log)) live[k] = cleanCount(log[k] && log[k].words);
+    const e = log[keys.daily];
+    live[keys.daily] = e ? Math.max(0, total - cleanCount(e.start)) : 0;
+    let week = 0, month = 0;
+    for (const k of Object.keys(live)) {
+      if (k >= keys.weekly && k <= keys.daily) week += live[k];
+      if (k.slice(0, 7) === keys.monthly && k <= keys.daily) month += live[k];
+    }
+    const make = (kind, written) => {
+      const target = cleanTarget(g[kind]);
+      return { target, written, done: target > 0 && written >= target, pct: target ? Math.round((written / target) * 100) : 0 };
+    };
+    return { daily: make('daily', live[keys.daily]), weekly: make('weekly', week), monthly: make('monthly', month), book: make('book', total) };
+  }
+
+  const setGoal = (kind, n, opts) => commit('goal', () => {
+    if (!GOAL_KINDS.includes(kind)) return;
+    if (!data.goals || typeof data.goals !== 'object') data.goals = { daily: 0, weekly: 0, monthly: 0, book: 0 };
+    data.goals[kind] = cleanTarget(n);
+  }, Object.assign({ coalesce: 'goal-' + kind }, opts));
+
+  // Which period a goal last announced itself in ('' = not yet). Silent bookkeeping, not an undo step.
+  const goalFired = (kind) => (data && data.goalLog && data.goalLog.fired && data.goalLog.fired[kind]) || '';
+  function markGoalFired(kind, key) {
+    if (!GOAL_KINDS.includes(kind) || !data) return;
+    if (!data.goalLog) recordGoalProgress();
+    if (data.goalLog && data.goalLog.fired) data.goalLog.fired[kind] = String(key || '').slice(0, 12);
   }
 
   // One-time upgrade: which chapters might hold their own text. Null when nothing to do.
@@ -981,6 +1094,9 @@
     find: { chapter: findChapter, scene: findScene, plotline: findPlotline },
     doc, entity, scenesWith, dropcapOwner, STATUSES, KINDS, KIND_ONE, SCENE_FIELD,
     chapterWords, totalWords, setWords,
+    // v0.8.2
+    GOAL_KINDS, GOAL_MAX, setGoal, goalProgress, recordGoalProgress, goalFired, markGoalFired, periodKeys,
+    onGoalChange: (cb) => goalListeners.push(cb),
     batch: (label, fn, opts) => commit(label, fn, opts),
     addChapter, insertChapterWithScene, updateChapter, deleteChapter, moveChapter,
     addScene, updateScene, deleteScene, moveScene, duplicateScene,
